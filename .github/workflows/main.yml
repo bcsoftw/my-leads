@@ -1,0 +1,62 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- REEMPLAZAR VARIABLE EN JS CON EL SECRET ---
+      - name: Inject Environment Variables
+        env:
+          API_URL: ${{ vars.GOOGLE_SCRIPT_URL }}
+        run: |
+          perl -pi -e 's|___REPLACE_WITH_API_URL___|$ENV{API_URL}|g' main.js
+
+      # --- SOLO HACER COMMIT/PUSH SI HUBO CAMBIOS REALES ---
+      - name: Commit and Push changes (if any)
+        id: commit
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add main.js
+          # Si no hay cambios salimos sin error
+          git diff --cached --exit-code && echo "No hay cambios que subir" && echo "changed=false" >> "$GITHUB_OUTPUT" && exit 0
+          git commit -m "chore: inject production Google Script URL [skip ci]"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push changes
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          git push origin main
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

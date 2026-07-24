@@ -1,0 +1,17 @@
+# Archivos de configuración con credenciales
+# IMPORTANTE: No subir archivos con tu API Key configurada
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
