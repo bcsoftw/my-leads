@@ -1,5 +1,5 @@
 // Configuración, aca puedes reemplazar con tu URL de Google Apps Scrip
-const GOOGLE_SCRIPT_URL =  '___REPLACE_WITH_API_URL___';
+const GOOGLE_SCRIPT_URL =  'https://script.google.com/macros/s/AKfycbxy64aepvBrZDeT6V54HR0noDB8jky83EU-Dp2baKnMsDcouEIonZ2D_pfWeaWbWi11/exec';
 
 // Seleccionar elementos del DOM
 const form = document.getElementById('leadForm');
