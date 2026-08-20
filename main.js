@@ -40,7 +40,7 @@ $("#leadForm").on("submit", function (event) {
   $.ajax({
     url: GOOGLE_SCRIPT_URL,
     type: "POST",
-    contentType: "application/json",
+    contentType: "text/plain;charset=utf-8",
     data: JSON.stringify(formData),
     crossDomain: true,
   }).always(function () {
