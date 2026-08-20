@@ -1,83 +1,81 @@
-// Configuración, aca puedes reemplazar con tu URL de Google Apps Scrip
-const GOOGLE_SCRIPT_URL =  'https://script.google.com/macros/s/AKfycbxy64aepvBrZDeT6V54HR0noDB8jky83EU-Dp2baKnMsDcouEIonZ2D_pfWeaWbWi11/exec';
+// Configuración de la URL de Google Apps Script
+const GOOGLE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbxy64aepvBrZDeT6V54HR0noDB8jky83EU-Dp2baKnMsDcouEIonZ2D_pfWeaWbWi11/exec";
 
-// Seleccionar elementos del DOM
-const form = document.getElementById('leadForm');
-const statusElement = document.getElementById('status');
+$("#leadForm").on("submit", function (event) {
+  event.preventDefault();
 
-// Inputs del formulario
-const nombreInput = document.querySelector('input[name="nombre"]');
-const apellidoInput = document.querySelector('input[name="apellido"]');
-const emailInput = document.querySelector('input[name="email"]');
-const telefonoInput = document.querySelector('input[name="telefono"]');
-const paisInput = document.querySelector('input[name="pais"]');
-const referenciaInput = document.querySelector('input[name="referencia"]');
-const proyectoInput = document.querySelector('textarea[name="proyecto"]');
-const presupuestoInput = document.querySelector('input[name="presupuesto"]');
+  const form = this;
+  const $button = $(form).find('button[type="submit"]');
+  const $status = $("#status");
 
-// Manejar el envío del formulario
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
+  // Bloquear botón y mostrar estado de carga
+  $button.prop("disabled", true).text("Enviando...");
+  $status
+    .removeClass("text-green-400 text-red-400")
+    .addClass("text-gray-400")
+    .text("Enviando solicitud...");
 
-  // Deshabilitar el botón de envío
-  const submitButton = form.querySelector('button[type="submit"]');
-  const originalText = submitButton.textContent;
-  submitButton.disabled = true;
-  submitButton.textContent = 'Enviando...';
+  // Recolectar datos del formulario usando jQuery de forma limpia
+  const formData = {
+    nombre: $('input[name="nombre"]').val(),
+    apellido: $('input[name="apellido"]').val(),
+    email: $('input[name="email"]').val(),
+    telefono: $('input[name="telefono"]').val(),
+    pais: $('input[name="pais"]').val(),
+    referencia: $('input[name="referencia"]').val(),
+    proyecto: $('textarea[name="proyecto"]').val(),
+    presupuesto: $('input[name="presupuesto"]').val(),
+    fecha: new Date().toLocaleString("es-ES"),
+  };
 
-  // Mostrar mensaje de carga
-  statusElement.textContent = 'Enviando información...';
-  statusElement.className = 'text-center text-sm mt-4 text-blue-400';
+  // Estructura de datos para FormSubmit (convertida a JSON String)
+  const emailData = JSON.stringify({
+    ...formData,
+    _subject: "Nueva solicitud de cotización",
+    _captcha: "false",
+  });
 
-  try {
-    // Preparar datos del formulario
-    const data = {
-      nombre: nombreInput.value,
-      apellido: apellidoInput.value,
-      email: emailInput.value,
-      telefono: telefonoInput.value,
-      pais: paisInput.value,
-      referencia: referenciaInput.value,
-      proyecto: proyectoInput.value,
-      presupuesto: presupuestoInput.value,
-      fecha: new Date().toLocaleString('es-ES')
-    };
-
-    // Enviar datos a Google Sheets
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    });
-
-    // Enviar notificación de WhatsApp (si está habilitado)
-    if (typeof enviarNotificacionWhatsApp === 'function') {
-      await enviarNotificacionWhatsApp(data);
-    }
-
-    // Nota: Con 'no-cors' no podemos leer la respuesta, pero el envío funciona
-    // Mostrar mensaje de éxito
-    statusElement.textContent = '¡Solicitud enviada correctamente! Nos pondremos en contacto pronto.';
-    statusElement.className = 'text-center text-sm mt-4 text-green-400';
-
-    // Limpiar formulario
-    form.reset();
-
-  } catch (error) {
-    console.error('Error:', error);
-    statusElement.textContent = 'Error al enviar la solicitud. Por favor, intenta nuevamente.';
-    statusElement.className = 'text-center text-sm mt-4 text-red-400';
-  } finally {
-    // Rehabilitar el botón
-    submitButton.disabled = false;
-    submitButton.textContent = originalText;
-
-    // Limpiar mensaje después de 5 segundos
-    setTimeout(() => {
-      statusElement.textContent = '';
-    }, 5000);
-  }
+  // Envío: Google Sheets
+  $.ajax({
+    url: GOOGLE_SCRIPT_URL,
+    type: "POST",
+    contentType: "application/json",
+    data: JSON.stringify(formData),
+    crossDomain: true,
+  }).always(function () {
+    // Ejecutar el segundo envío sin importar si Sheets responde con éxito o error de CORS
+    enviarFormSubmit(emailData, form, $status);
+  });
 });
+
+// Envío: FormSubmit (Email)
+function enviarFormSubmit(emailData, form, $status) {
+  $.ajax({
+    method: "POST",
+    url: "https://formsubmit.co/ajax/bcolina88@gmail.com",
+    contentType: "application/json",
+    dataType: "json",
+    data: emailData,
+    success: function () {
+      $status
+        .removeClass("text-gray-400 text-red-400")
+        .addClass("text-green-400")
+        .text("Solicitud enviada correctamente.");
+      form.reset();
+    },
+    error: function () {
+      $status
+        .removeClass("text-gray-400 text-green-400")
+        .addClass("text-red-400")
+        .text("No se pudo enviar la solicitud. Intenta nuevamente.");
+    },
+    complete: function () {
+      // Desbloquear el botón al finalizar todo el proceso
+      $(form)
+        .find('button[type="submit"]')
+        .prop("disabled", false)
+        .text("Enviar Solicitud");
+    },
+  });
+}
